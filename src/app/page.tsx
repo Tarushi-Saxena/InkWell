@@ -95,7 +95,7 @@ function App() {
             <span className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent">before you scroll.</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/60 sm:text-lg">
-            A blogging platform where every post is instantly distilled into a <span className="text-white">~200 word</span> AI summary.
+            A blogging platform where every post is instantly distilled into a <span className="text-white">crisp AI summary</span>.
             Skim the universe. Dive into what matters.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -134,7 +134,7 @@ function App() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               { n: '01', t: 'Write', d: 'Draft a post with a title, featured image, and body. No word limits, no writer’s block tax.', icon: BookText },
-              { n: '02', t: 'Summarize', d: 'Gemini 2.5 Flash condenses your post into a crisp ~200 word summary in seconds.', icon: Brain },
+              { n: '02', t: 'Summarize', d: 'Gemini 2.5 Flash condenses your post into a crisp summary in seconds.', icon: Brain },
               { n: '03', t: 'Publish', d: 'Summary stored alongside your post. Readers skim the feed or dive into the full piece.', icon: Zap },
             ].map((s) => (
               <div key={s.n} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-transparent p-6 transition hover:border-white/20">
