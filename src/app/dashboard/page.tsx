@@ -179,8 +179,9 @@ export default function Dashboard() {
                        <h3 className="font-medium text-sm leading-snug">{p.title}</h3>
                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">{new Date(p.created_at).toLocaleDateString()}</p>
                      </div>
-                     <div className="flex gap-2 w-full sm:w-auto">
-                       <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => handleEdit(p)}>Edit</Button>
+                     <div className="flex gap-2 w-full sm:w-auto grid-cols-3">
+                       <Button size="sm" variant="secondary" className="flex-1 sm:flex-none bg-white/10 hover:bg-white/20 text-white" onClick={() => router.push('/posts/' + p.id)}>View & Comments</Button>
+                       <Button size="sm" variant="outline" className="flex-1 sm:flex-none border-white/20 hover:bg-white/10" onClick={() => handleEdit(p)}>Edit Post</Button>
                        <Button size="sm" variant="ghost" className="flex-1 sm:flex-none text-red-400 hover:text-red-300 hover:bg-red-400/10" onClick={() => handleDelete(p.id)}>Delete</Button>
                      </div>
                    </div>
