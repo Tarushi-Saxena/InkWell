@@ -137,7 +137,7 @@ export default function Dashboard() {
           <Button variant="outline" onClick={async () => { await supabase.auth.signOut(); router.push('/'); }}>Sign Out</Button>
         </div>
 
-        {canWrite ? (
+        {canWrite && (
           <div className="grid lg:grid-cols-2 gap-10">
             {/* Editor */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-6 h-fit">
@@ -189,11 +189,36 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        ) : (
-          <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center max-w-lg mx-auto">
-            <h2 className="text-xl font-medium mb-2">Viewer Account</h2>
-            <p className="text-white/50 text-sm leading-relaxed">You current role is VIEWER. You cannot create posts.</p>
-            <p className="text-white/50 text-sm leading-relaxed mt-2">To get author access, an admin needs to manually update your role in the Supabase generic SQL database.</p>
+        {!canWrite && (
+          <div className="grid lg:grid-cols-2 gap-10">
+            {/* Viewer Profile Details */}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-8 h-fit">
+              <h2 className="text-xl font-medium mb-4">Your Profile</h2>
+              <div className="space-y-4 text-sm text-white/70">
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-white/40 uppercase tracking-widest text-[10px]">Name</span>
+                  <span className="font-medium text-white">{profile?.name}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-white/40 uppercase tracking-widest text-[10px]">Email</span>
+                  <span className="font-medium text-white">{profile?.email}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-white/40 uppercase tracking-widest text-[10px]">Role Status</span>
+                  <span className="font-medium text-emerald-400">Active Viewer</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Viewer Feed / Action */}
+            <div className="bg-gradient-to-br from-indigo-500/10 via-transparent to-cyan-500/10 border border-white/10 rounded-xl p-8">
+              <h2 className="text-xl font-medium mb-2 text-white">Welcome to Inkwell</h2>
+              <p className="text-white/60 text-sm leading-relaxed mb-6">As a Viewer, you have full access to explore the feed, read our AI-generated post summaries, and leave comments on any article. Upgrading to an Author requires backend authorization.</p>
+              
+              <Button onClick={() => router.push('/')} variant="secondary" className="bg-white text-black hover:bg-white/90">
+                Explore The Feed
+              </Button>
+            </div>
           </div>
         )}
       </div>
