@@ -20,65 +20,41 @@ function AuthContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleDemoLogin = async (demoRole: string) => {
-    setLoading(true);
-    setError('');
-    const demoEmail = `${demoRole.toLowerCase()}@inkwell.com`;
-    const demoPassword = 'Password123!';
-
-    try {
-      // Attempt login
-      let { data, error } = await supabase.auth.signInWithPassword({ email: demoEmail, password: demoPassword });
-      
-      // If user doesn't exist, create it automatically behind the scenes
-      if (error && error.message.includes('Invalid login credentials')) {
-        const signupRes = await supabase.auth.signUp({
-          email: demoEmail,
-          password: demoPassword,
-          options: { data: { full_name: `${demoRole} Demo`, role: demoRole } }
-        });
-        if (signupRes.error) throw signupRes.error;
-      } else if (error) {
-        throw error;
-      }
-      
-      router.refresh();
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Demo login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) return setError('Login credentials are required.');
+    
     setLoading(true);
     setError('');
 
     try {
-      let result;
       if (mode === 'signup') {
-        result = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name, role: role } }
+          options: { data: { full_name: name } }
         });
+        if (error) throw error;
+        
+        // Immediately enforce the correct role into the Database via RLS client-side workaround
+        if (data?.user) {
+          await supabase.from('profiles').update({ role: role }).eq('id', data.user.id);
+        }
+        
+        if (data?.session) {
+           router.refresh();
+           router.push('/dashboard');
+        } else {
+           setError('Account created! Please check your email or refresh to log in.');
+        }
       } else {
-        result = await supabase.auth.signInWithPassword({ email, password });
-      }
-
-      if (result.error) {
-        setError(result.error.message);
-      } else if (mode === 'signup' && !result.data.session) {
-        setError('Please check your email to confirm your account. In a local environment, this might be bypassed.');
-        setTimeout(() => setMode('login'), 2000);
-      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
         router.refresh();
         router.push('/dashboard');
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
+      setError(err.message || 'An error occurred.');
     } finally {
       setLoading(false);
     }
@@ -93,21 +69,9 @@ function AuthContent() {
           </div>
         </div>
         <h2 className="text-2xl font-semibold mb-6 text-center tracking-tight text-white">
-          {mode === 'login' ? 'Welcome Back' : 'Create your account'}
+          {mode === 'login' ? 'Sign In to your account' : 'Create an account'}
         </h2>
         
-        {/* Fast Demo Login Section */}
-        {mode === 'login' && (
-          <div className="mb-6 pb-6 border-b border-white/10">
-            <label className="text-xs font-medium text-white/50 uppercase tracking-widest block mb-3 text-center">One-Click Demo Login</label>
-            <div className="flex gap-2 justify-center">
-              <Button onClick={() => handleDemoLogin('Viewer')} type="button" variant="secondary" size="sm" className="bg-white/10 text-white hover:bg-white/20 h-9">Viewer</Button>
-              <Button onClick={() => handleDemoLogin('Author')} type="button" variant="secondary" size="sm" className="bg-white/10 text-emerald-300 hover:bg-white/20 h-9">Author</Button>
-              <Button onClick={() => handleDemoLogin('Admin')} type="button" variant="secondary" size="sm" className="bg-white/10 text-indigo-300 hover:bg-white/20 h-9">Admin</Button>
-            </div>
-          </div>
-        )}
-
         {error && <div className="mb-4 text-red-400 text-sm p-3 bg-red-400/10 rounded-md border border-red-400/20">{error}</div>}
         
         <form onSubmit={handleAuth} className="space-y-4">
@@ -115,38 +79,38 @@ function AuthContent() {
             <>
               <div>
                 <label className="text-xs font-medium text-white/50 uppercase tracking-widest block mb-1.5">Full Name</label>
-                <Input required value={name} onChange={e => setName(e.target.value)} placeholder="Jane Doe" className="border-white/10 bg-white/5" />
+                <Input required value={name} onChange={e => setName(e.target.value)} placeholder="Enter your full name" className="border-white/10 bg-[#050608] text-white" />
               </div>
               <div>
                 <label className="text-xs font-medium text-white/50 uppercase tracking-widest block mb-1.5">Select Role</label>
                 <select 
                   value={role} 
                   onChange={e => setRole(e.target.value)}
-                  className="w-full h-10 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+                  className="w-full h-10 rounded-md border border-white/10 bg-[#050608] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
                 >
-                  <option value="Viewer" className="bg-black">Viewer</option>
-                  <option value="Author" className="bg-black">Author</option>
-                  <option value="Admin" className="bg-black">Admin</option>
+                  <option value="Viewer">Viewer (Comment & Read)</option>
+                  <option value="Author">Author (Create Posts)</option>
+                  <option value="Admin">Admin (Moderate All)</option>
                 </select>
               </div>
             </>
           )}
           <div>
-            <label className="text-xs font-medium text-white/50 uppercase tracking-widest block mb-1.5">{mode === 'signup' ? 'Email' : 'Or use manual email'}</label>
-            <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="hello@example.com" className="border-white/10 bg-white/5" />
+            <label className="text-xs font-medium text-white/50 uppercase tracking-widest block mb-1.5">Email Address</label>
+            <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="hello@example.com" className="border-white/10 bg-[#050608] text-white" />
           </div>
           <div>
             <label className="text-xs font-medium text-white/50 uppercase tracking-widest block mb-1.5">Password</label>
-            <Input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="border-white/10 bg-white/5" />
+            <Input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="border-white/10 bg-[#050608] text-white" />
           </div>
-          <Button type="submit" className="w-full h-11 text-base mt-2" disabled={loading}>
-            {loading ? 'Processing...' : (mode === 'login' ? 'Sign In' : 'Sign Up')}
+          <Button type="submit" className="w-full h-11 text-base mt-5 bg-white text-black hover:bg-white/90" disabled={loading}>
+            {loading ? 'Authenticating...' : (mode === 'login' ? 'Sign In' : 'Sign Up')}
           </Button>
         </form>
         
         <div className="mt-6 text-center text-sm text-white/50">
           {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
-          <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }} className="text-white hover:text-indigo-300 font-medium transition-colors">
+          <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }} type="button" className="text-white hover:text-indigo-300 font-medium transition-colors">
             {mode === 'login' ? 'Sign Up' : 'Log In'}
           </button>
         </div>
