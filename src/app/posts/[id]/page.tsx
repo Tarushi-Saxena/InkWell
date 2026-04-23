@@ -17,10 +17,16 @@ export default function PostDetail() {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data?.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user);
+      if (data?.user) {
+         supabase.from('profiles').select('*').eq('id', data.user.id).single().then(res => setProfile(res.data));
+      }
+    });
     if (id) loadPost();
   }, [id]);
 
@@ -46,6 +52,20 @@ export default function PostDetail() {
     });
     setNewComment('');
     loadPost(); // reload comments
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (!confirm('Delete comment?')) return;
+    await supabase.from('comments').delete().eq('id', commentId);
+    loadPost();
+  };
+
+  const canDeleteComment = (commentUser: string) => {
+    if (!user) return false;
+    if (profile?.role?.toUpperCase() === 'ADMIN') return true;
+    if (profile?.role?.toUpperCase() === 'AUTHOR' && post?.author_id === user.id) return true;
+    if (commentUser === user.id) return true;
+    return false;
   };
 
   if (loading) return <div className="min-h-screen bg-[#050608] text-white p-20 text-center">Loading post...</div>;
@@ -95,9 +115,14 @@ export default function PostDetail() {
           <div className="space-y-6 mb-10">
             {comments.map((c) => (
               <div key={c.id} className="bg-white/5 border border-white/10 rounded-xl p-5">
-                <div className="flex justify-between items-center mb-3">
+                <div className="flex justify-between items-start mb-3">
                   <div className="font-medium text-sm text-white/90">{c.profiles?.name || 'Unknown'}</div>
-                  <div className="text-[10px] text-white/40 uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</div>
+                  <div className="flex gap-4 items-center">
+                    <div className="text-[10px] text-white/40 uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</div>
+                    {canDeleteComment(c.user_id) && (
+                      <button onClick={() => deleteComment(c.id)} className="text-[10px] text-red-500 hover:text-red-400 uppercase font-medium">Delete</button>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-white/70 leading-relaxed">{c.comment_text}</p>
               </div>

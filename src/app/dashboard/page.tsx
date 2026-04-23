@@ -35,8 +35,9 @@ export default function Dashboard() {
     const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single();
     setProfile(prof);
 
+    const role = prof?.role?.toUpperCase() || 'VIEWER';
     let q = supabase.from('posts').select('*').order('created_at', { ascending: false });
-    if (prof?.role !== 'ADMIN') {
+    if (role !== 'ADMIN') {
       q = q.eq('author_id', userId);
     }
     const { data } = await q;
@@ -86,7 +87,7 @@ export default function Dashboard() {
 
   if (loading) return <div className="min-h-screen bg-[#050608] text-white p-20 text-center">Loading dashboard...</div>;
 
-  const canWrite = profile?.role === 'ADMIN' || profile?.role === 'AUTHOR';
+  const canWrite = profile?.role?.toUpperCase() === 'ADMIN' || profile?.role?.toUpperCase() === 'AUTHOR';
 
   return (
     <div className="min-h-screen bg-[#050608] text-white">
