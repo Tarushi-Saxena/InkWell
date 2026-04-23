@@ -36,11 +36,7 @@ export default function Dashboard() {
     setProfile(prof);
 
     const role = prof?.role?.toUpperCase() || 'VIEWER';
-    let q = supabase.from('posts').select('*').order('created_at', { ascending: false });
-    if (role !== 'ADMIN') {
-      q = q.eq('author_id', userId);
-    }
-    const { data } = await q;
+    const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
     setPosts(data || []);
     setLoading(false);
   };
@@ -55,19 +51,21 @@ export default function Dashboard() {
         if (current.body !== body) {
           updatedSummary = await getAiSummaryAction(body);
         }
-        await supabase.from('posts').update({ title, body, image_url: imageUrl, summary: updatedSummary }).eq('id', editingId);
+        const { error } = await supabase.from('posts').update({ title, body, image_url: imageUrl, summary: updatedSummary }).eq('id', editingId);
+        if (error) throw error;
       } else {
         const summary = await getAiSummaryAction(body);
-        await supabase.from('posts').insert({
+        const { error } = await supabase.from('posts').insert({
           title, body, image_url: imageUrl, summary, author_id: user.id
         });
+        if (error) throw error;
       }
       
       setTitle(''); setBody(''); setImageUrl(''); setEditingId(null);
       await loadProfileAndPosts(user.id);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Error saving post');
+      alert('Error saving post: ' + err.message);
     }
     setSaving(false);
   };
@@ -173,19 +171,30 @@ export default function Dashboard() {
                  )}
               </div>
               <div className="space-y-3">
-                {posts.map(p => (
+                {posts.map(p => {
+                   const isOwner = p.author_id === user?.id;
+                   const isAdmin = profile?.role?.toUpperCase() === 'ADMIN';
+                   const canManage = isOwner || isAdmin;
+                   
+                   return (
                    <div key={p.id} className="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center group hover:bg-white/5 transition gap-3">
                      <div>
                        <h3 className="font-medium text-sm leading-snug">{p.title}</h3>
                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">{new Date(p.created_at).toLocaleDateString()}</p>
                      </div>
-                     <div className="flex gap-2 w-full sm:w-auto grid-cols-3">
+                     <div className="flex gap-2 w-full sm:w-auto">
                        <Button size="sm" variant="secondary" className="flex-1 sm:flex-none bg-white/10 hover:bg-white/20 text-white" onClick={() => router.push('/posts/' + p.id)}>View & Comments</Button>
-                       <Button size="sm" variant="outline" className="flex-1 sm:flex-none border-white/20 hover:bg-white/10" onClick={() => handleEdit(p)}>Edit Post</Button>
-                       <Button size="sm" variant="ghost" className="flex-1 sm:flex-none text-red-400 hover:text-red-300 hover:bg-red-400/10" onClick={() => handleDelete(p.id)}>Delete</Button>
+                       {canManage ? (
+                          <>
+                             <Button size="sm" variant="outline" className="flex-1 sm:flex-none border-white/20 hover:bg-white/10" onClick={() => handleEdit(p)}>Edit Post</Button>
+                             <Button size="sm" variant="ghost" className="flex-1 sm:flex-none text-red-400 hover:text-red-300 hover:bg-red-400/10" onClick={() => handleDelete(p.id)}>Delete</Button>
+                          </>
+                       ) : (
+                          <div className="text-[10px] text-white/30 uppercase tracking-widest self-center px-4 hidden sm:block">Read Only</div>
+                       )}
                      </div>
                    </div>
-                ))}
+                 )})}
                 {posts.length === 0 && <p className="text-white/40 text-sm">No posts yet.</p>}
               </div>
             </div>
